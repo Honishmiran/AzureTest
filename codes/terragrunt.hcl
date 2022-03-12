@@ -34,8 +34,8 @@ generate "provider" {
 provider "azurerm" {
   features {}
   subscription_id =  "${local.subscription_id}"
-  client_id       = "UJJ7Q~Tk1wX6LByjfWUvbrkmY3EL48WCBX.hN"
-  client_secret   = "04bb565b-e92f-45f0-8223-6fcea49345a7"
+  client_id   = "04bb565b-e92f-45f0-8223-6fcea49345a7"
+  client_secret       = "UJJ7Q~Tk1wX6LByjfWUvbrkmY3EL48WCBX.hN"
   tenant_id       = "5dd6d6f8-c5ac-40b5-b11b-568ff3e7ba8b"
 
   skip_provider_registration = true
