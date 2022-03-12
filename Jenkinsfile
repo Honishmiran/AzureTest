@@ -5,46 +5,50 @@ agent any
 
     stage('Check-Out') {
      steps {
-        checkout([$class: 'GitSCM', branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/Honishmiran/AzureTest.git']]])
-        sh '''
-        ls -la live/dev/west-europe/resource_group/
-        '''
+        
+        checkout([$class: 'GitSCM', branches: [[name: '*/main']], extensions: [[$class: 'RelativeTargetDirectory']], userRemoteConfigs: [[credentialsId: 'jenkins_guy', url: 'https://git-codecommit.us-east-1.amazonaws.com/v1/repos/azure1']]])
         
      }
     }
 
-  stage('Terragrunt Init') {
+  stage('terragrunt init') {
 
       steps {
-                echo 'Terragrunt Init'
+                echo 'terragrunt init'
         sh '''
-        terragrunt init"
+        cd azure1/codes/Pay-As-You-Go/prod/vm/sabmachine
+        ls
+        terragrunt init
         '''
                 echo 'Terragrunt Init done'
       }
     }
 
-    stage('Terragrunt Plan') {
+    stage('terragrunt plan') {
 
       steps {
                 echo 'Terragrunt Plan'
         sh '''
-        terragrunt plan"
+        cd azure1/codes/Pay-As-You-Go/prod/vm/sabmachine
+        ls
+        terragrunt plan -var-file="input.tfvars"
         '''
-                echo 'TTerragrunt Plan done'
+                echo 'Terragrunt Plan done'
       }
     }
 
-    stage('Terragrunt Apply') {
+    stage('terragrunt apply') {
 
       steps {
                 echo 'Terragrunt Apply'
         sh '''
-        terragrunt apply --auto-approve"
+        cd azure1/codes/Pay-As-You-Go/prod/vm/sabmachine
+        ls
+        terragrunt apply -var-file="input.tfvars" --auto-approve
         '''
                 echo 'Terragrunt Apply done'
       }
     }
-  }
-  
+
+  } 
 }
