@@ -1,0 +1,58 @@
+######Virtual Machine Configuration######
+vm_hostname             = "windowstest"
+resource_group_name     = "test"
+location                = ""
+vm_size                 = "Standard_D2s_v3"
+identity_type           = "SystemAssigned"
+virtual_network_name    = "test-vnet"
+subnet_name             = "mytest"
+private_ip              = "10.0.1.8"
+#########################################
+#########################################
+
+######Opreating System Configuration#####
+vm_os_offer             = "WindowsServer"
+vm_os_simple            = "WindowsServer"
+license_type            = "Windows_Server"
+vm_os_publisher         = "MicrosoftWindowsServer"
+vm_os_sku               = "2016-Datacenter"
+vm_os_version           = "latest"
+ssh_key                 = "public_key.pub"
+enable_ssh_key          = true
+#########################################
+#########################################
+
+######Only for Custom Image Reference####
+vm_custom_os_id         = ""
+is_windows_image        = false
+#########################################
+#########################################
+
+####Virtual Machine Disk Configuration###
+os_disk_type = ""
+os_disk_size = ""
+delete_os_disk_on_termination = true
+delete_data_disks_on_termination = true
+extra_disks = {
+  DataDisk1 = {
+    name = "1"
+    size = 30
+    lun  = 0
+    diskType = ""
+    createOption = ""
+    sourceResourceId = ""
+  },
+  DataDisk2 = {
+    name = "2"
+    size = 40
+    lun  = 1
+    diskType = ""
+    createOption = ""
+    sourceResourceId = ""
+  }
+}
+#########################################
+#########################################
+#####Boot Diagnostics Configuration#####
+boot_diagnostics        = true
+boot_diagnostics_sa_uri = ""

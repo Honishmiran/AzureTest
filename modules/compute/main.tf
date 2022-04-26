@@ -45,21 +45,11 @@ resource "azurerm_virtual_machine" "vm-linux" {
   }
 
   storage_os_disk {
-    name              = "osdisk-${var.vm_hostname}"
+    name              = "${var.vm_hostname}_OsDisk"
     create_option     = "FromImage"
     caching           = "ReadWrite"
+    disk_size_gb = var.os_disk_size
     managed_disk_type = var.os_disk_type
-  }
-
-  dynamic storage_data_disk {
-    for_each = var.extra_disks
-    content {
-      name              = "${var.vm_hostname}-datadisk-${storage_data_disk.value.name}"
-      create_option     = "Empty"
-      lun               = storage_data_disk.key
-      disk_size_gb      = storage_data_disk.value.size
-      managed_disk_type = var.data_sa_type
-    }
   }
 
   os_profile {
@@ -101,8 +91,6 @@ resource "azurerm_virtual_machine" "vm-linux" {
     }
   }
 
-  tags = var.tags
-
   boot_diagnostics {
     enabled     = var.boot_diagnostics
     storage_uri = var.boot_diagnostics_sa_uri
@@ -143,9 +131,10 @@ resource "azurerm_virtual_machine" "vm-windows" {
   }
 
   storage_os_disk {
-    name              = "osdisk-${var.vm_hostname}"
+    name              = "${var.vm_hostname}_OSdisk"
     create_option     = "FromImage"
     caching           = "ReadWrite"
+    disk_size_gb = var.os_disk_size
     managed_disk_type = var.os_disk_type
   }
 
@@ -156,7 +145,6 @@ resource "azurerm_virtual_machine" "vm-windows" {
     admin_password = var.admin_password
   }
 
-  tags = var.tags
 
   os_profile_windows_config {
     provision_vm_agent = true
@@ -173,17 +161,6 @@ resource "azurerm_virtual_machine" "vm-windows" {
       }
     }
   }
-  # dynamic storage_data_disk {
-  #   for_each = var.extra_disks
-  #   content {
-  #     name              = "${var.vm_hostname}-datadisk-${count.index}-${storage_data_disk.value.name}"
-  #     create_option     = "Empty"
-  #     lun               = storage_data_disk.key
-  #     disk_size_gb      = storage_data_disk.value.size
-  #     managed_disk_type = var.data_sa_type
-  #   }
-  # }
-
 
   boot_diagnostics {
     enabled     = var.boot_diagnostics
@@ -191,61 +168,40 @@ resource "azurerm_virtual_machine" "vm-windows" {
   }
 }
 
-resource "azurerm_managed_disk" "copy" {
-  count = length(var.extra_disks)
-  name                 = "${var.extra_disks.*.name[count.index]}"
+resource "azurerm_managed_disk" "data_disk" {
+  for_each = var.extra_disks
+  name                 = "${var.vm_hostname}_${each.key}"
   location             = "${!contains(tolist([var.vm_os_simple, var.vm_os_offer]), "WindowsServer") && !var.is_windows_image ? azurerm_virtual_machine.vm-linux[0].location : azurerm_virtual_machine.vm-windows[0].location}"
-  resource_group_name  = "test"
-  storage_account_type = "Standard_LRS"
-  create_option        = "Empty"
-  source_resource_id   = ""
-  disk_size_gb         = var.extra_disks.*.size[count.index]
+  resource_group_name  = var.resource_group_name
+  storage_account_type = each.value.diskType
+  create_option        = each.value.createOption
+  source_resource_id   = each.value.sourceResourceId
+  disk_size_gb         = each.value.size  
 
-  tags = {
-    environment = var.extra_disks.*.name[count.index]
-  }
-  depends_on = [
-    azurerm_virtual_machine.vm-windows
-    ]
-  
+  #depends_on = [azurerm_virtual_machine.vm-windows, azurerm_virtual_machine.vm-linux]
 }
 
-resource "azurerm_virtual_machine_data_disk_attachment" "example" {
-  count = length(var.extra_disks)   
-  managed_disk_id    = "${azurerm_managed_disk.copy[count.index].id}"
+resource "azurerm_virtual_machine_data_disk_attachment" "data_disk_attachment" {
+  for_each = var.extra_disks   
+  managed_disk_id    = "${azurerm_managed_disk.data_disk[each.key].id}"
   virtual_machine_id = "${!contains(tolist([var.vm_os_simple, var.vm_os_offer]), "WindowsServer") && !var.is_windows_image ? azurerm_virtual_machine.vm-linux[0].id : azurerm_virtual_machine.vm-windows[0].id }"
-  lun                = var.extra_disks.*.lun[count.index]
-  caching            = "ReadWrite"
+  lun                = each.value.lun
+  caching            = each.value.caching
 
-  depends_on = [
-    azurerm_virtual_machine.vm-windows
-    ]
-}
-
-
-resource "azurerm_network_security_group" "vm" {
-  name                = "${var.vm_hostname}-nsg"
-  resource_group_name = data.azurerm_resource_group.vm.name
-  location            = coalesce(var.location, data.azurerm_resource_group.vm.location)
+  #depends_on = [azurerm_managed_disk.data_disk]
 }
 
 resource "azurerm_network_interface" "vm" {
-  name                          = "${var.vm_hostname}-nic"
+  name                          = "${var.vm_hostname}_nic"
   resource_group_name           = data.azurerm_resource_group.vm.name
   location                      = coalesce(var.location, data.azurerm_resource_group.vm.location)
   enable_accelerated_networking = var.enable_accelerated_networking
 
   ip_configuration {
-    name                          = "${var.vm_hostname}-ip"
+    name                          = "${var.vm_hostname}_PrivateIp"
     subnet_id                     = "/subscriptions/${local.subscription_id}/resourceGroups/${var.resource_group_name}/providers/Microsoft.Network/virtualNetworks/${var.virtual_network_name}/subnets/${var.subnet_name}"
     private_ip_address_allocation = "Static"
     private_ip_address = var.private_ip
   }
 
 }
-
-resource "azurerm_network_interface_security_group_association" "test" {
-  network_interface_id      = azurerm_network_interface.vm.id
-  network_security_group_id = azurerm_network_security_group.vm.id
-}
-

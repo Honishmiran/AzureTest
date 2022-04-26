@@ -51,6 +51,13 @@ variable "os_disk_type" {
   default     = "Premium_LRS"
 }
 
+variable "os_disk_size" {
+  description = "The Operating System Disk size definition"
+  type        = number
+  default     = 30
+}
+
+
 variable "vm_size" {
   description = "Specifies the size of the virtual machine."
   type        = string
@@ -207,12 +214,8 @@ variable "identity_ids" {
 
 variable "extra_disks" {
   description = "(Optional) List of extra data disks attached to each virtual machine."
-  type = list(object({
-    name = string
-    size = number
-    lun = number
-  }))
-  default = []
+  type = map
+  default = {}
 }
 
 variable "os_profile_secrets" {
